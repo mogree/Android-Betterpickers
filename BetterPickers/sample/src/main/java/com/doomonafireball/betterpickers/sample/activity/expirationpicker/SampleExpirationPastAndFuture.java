@@ -14,7 +14,7 @@ import com.doomonafireball.betterpickers.sample.activity.BaseSampleActivity;
 /**
  * @author Yuki Nishijima
  */
-public class SampleExpirationPast extends BaseSampleActivity implements ExpirationPickerDialogFragment.ExpirationPickerDialogHandler {
+public class SampleExpirationPastAndFuture extends BaseSampleActivity implements ExpirationPickerDialogFragment.ExpirationPickerDialogHandler {
 
     private TextView text;
     private Button button;
@@ -35,7 +35,7 @@ public class SampleExpirationPast extends BaseSampleActivity implements Expirati
                 ExpirationPickerBuilder dpb = new ExpirationPickerBuilder()
                         .setFragmentManager(getSupportFragmentManager())
                         .setStyleResId(R.style.BetterPickersDialogFragment)
-						.setRequiredTimeEra(ExpirationPicker.TIME_ERA_PAST_ONLY);
+						.setRequiredTimeEra(ExpirationPicker.TIME_ERA_PAST_AND_FUTURE);
                 dpb.show();
             }
         });

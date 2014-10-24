@@ -3,7 +3,6 @@ package com.doomonafireball.betterpickers.expirationpicker;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.ColorStateList;
-import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -32,12 +31,17 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 	private final static int EXPIRATION_MONTH_POSITION = 0;
 	private final static int EXPIRATION_YEAR_POSITION = 1;
 
-	protected boolean mRequireFutureDate;
+	public final static int TIME_ERA_PAST_ONLY = 0;
+	public final static int TIME_ERA_FUTURE_ONLY = 1;
+	public final static int TIME_ERA_PAST_AND_FUTURE = 2;
+
+	protected int mRequiredTimeEra = TIME_ERA_FUTURE_ONLY;
 	protected int mYearInputSize = 4;
 	protected int mMonthInput = -1;
 	protected int mYearInput[] = new int[mYearInputSize];
 	protected int mYearInputPointer = -1;
 	protected final int mCurrentYear;
+	protected final int mCurrentMonth;
 	protected final Button mMonths[] = new Button[12];
 	protected final Button mYearNumbers[] = new Button[10];
 	protected Button mYearLeft, mYearRight;
@@ -73,6 +77,7 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 	 *
 	 * @param context the Context required for creation
 	 */
+	@SuppressWarnings("unused")
 	public ExpirationPicker(Context context) {
 		this(context, null);
 	}
@@ -101,7 +106,9 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 		mDeleteDrawableSrcResId = R.drawable.ic_backspace_dark;
 		mCheckDrawableSrcResId = R.drawable.ic_check_dark;
 
-		mCurrentYear = Calendar.getInstance().get(Calendar.YEAR);
+		Calendar calendar = Calendar.getInstance();
+		mCurrentYear = calendar.get(Calendar.YEAR);
+		mCurrentMonth = calendar.get(Calendar.MONTH) + 1;
 	}
 
 	protected int getLayoutId() {
@@ -137,12 +144,15 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 		restyleViews();
 	}
 
-	public void setRequireFutureDate(boolean requireFutureDate) {
-		mRequireFutureDate = requireFutureDate;
+	@SuppressWarnings("unused")
+	public void setRequiredTimeEra(int requiredTimeEra) {
+		mRequiredTimeEra = requiredTimeEra;
+		reset();
 	}
 
-	public boolean isRequireFutureDate() {
-		return mRequireFutureDate;
+	@SuppressWarnings("unused")
+	public int isRequiredTimeEra() {
+		return mRequiredTimeEra;
 	}
 
 	private void restyleViews() {
@@ -209,10 +219,16 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 		mDelete.setOnClickListener(this);
 		mDelete.setOnLongClickListener(this);
 
-		if (mRequireFutureDate) {
-			addClickedYearNumber(mCurrentYear / 1000);
-			addClickedYearNumber((mCurrentYear % 1000) / 100);
-			mKeyboardPager.setCurrentItem(mKeyboardPager.getCurrentItem() - 1, true);
+		switch (mRequiredTimeEra) {
+			case TIME_ERA_FUTURE_ONLY:
+				addClickedYearNumber(mCurrentYear / 1000);
+				addClickedYearNumber((mCurrentYear % 1000) / 100);
+				mKeyboardPager.setCurrentItem(mKeyboardPager.getCurrentItem() - 1, true);
+				break;
+
+			default:
+				// Nothing to do
+				break;
 		}
 
 		setLeftRightEnabled();
@@ -238,11 +254,10 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 		 */
 		public Object instantiateItem(ViewGroup collection, int position) {
 			View view;
-			Resources res = mContext.getResources();
 			if (position == EXPIRATION_MONTH_POSITION) {
 				// Months
 				sMonthKeyboardPosition = position;
-				view = mInflater.inflate(R.layout.keyboard_text, null);
+				view = mInflater.inflate(R.layout.keyboard_text, collection, false);
 				View v1 = view.findViewById(R.id.first);
 				View v2 = view.findViewById(R.id.second);
 				View v3 = view.findViewById(R.id.third);
@@ -276,7 +291,7 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 			} else if (position == EXPIRATION_YEAR_POSITION) {
 				// Year
 				sYearKeyboardPosition = position;
-				view = mInflater.inflate(R.layout.keyboard, null);
+				view = mInflater.inflate(R.layout.keyboard, collection, false);
 				View v1 = view.findViewById(R.id.first);
 				View v2 = view.findViewById(R.id.second);
 				View v3 = view.findViewById(R.id.third);
@@ -363,8 +378,13 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 						mMonthInput = -1;
 					}
 					break;
+
 				case EXPIRATION_YEAR_POSITION:
-					if (mYearInputPointer >= 0) {
+					int pointerMin = 0;
+					if (mRequiredTimeEra == TIME_ERA_FUTURE_ONLY) {
+						pointerMin = 2;
+					}
+					if (mYearInputPointer >= pointerMin) {
 						for (int i = 0; i < mYearInputPointer; i++) {
 							mYearInput[i] = mYearInput[i + 1];
 						}
@@ -427,6 +447,18 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 		mMonthInput = -1;
 		mKeyboardPager.setCurrentItem(0, true);
 		updateExpiration();
+
+		switch (mRequiredTimeEra) {
+			case TIME_ERA_FUTURE_ONLY:
+				addClickedYearNumber(mCurrentYear / 1000);
+				addClickedYearNumber((mCurrentYear % 1000) / 100);
+				mKeyboardPager.setCurrentItem(mKeyboardPager.getCurrentItem() - 1, true);
+				break;
+
+			default:
+				// Nothing to do
+				break;
+		}
 	}
 
 	@SuppressLint("DefaultLocale")
@@ -467,9 +499,9 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 	 * Enable/disable keys on the month key pad according to the data entered
 	 */
 	private void updateMonthKeys() {
-		for (int i = 0; i < mMonths.length; i++) {
-			if (mMonths[i] != null) {
-				mMonths[i].setEnabled(true);
+		for (Button mMonth : mMonths) {
+			if (mMonth != null) {
+				mMonth.setEnabled(true);
 			}
 		}
 	}
@@ -478,20 +510,66 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 	 * Enable/disable keys on the year key pad according to the data entered
 	 */
 	private void updateYearKeys() {
-		if (mYearInputPointer == 1) {
-			if (mRequireFutureDate) {
-				setYearMinKeyRange((mCurrentYear % 100) / 10);
-			} else {
-				setYearMinKeyRange(-1);
+		switch (mRequiredTimeEra) {
+			case TIME_ERA_PAST_ONLY: {
+				int maxYear = mCurrentYear;
+				if (mMonthInput > mCurrentMonth) {
+					--maxYear;
+				}
+
+				if (mYearInputPointer == -1) {
+					setYearMaxKeyRange(maxYear / 1000);
+				} else if (mYearInputPointer == 0) {
+					setYearMaxKeyRange(Math.min((maxYear / 100) - (mYearInput[0] * 10), 9));
+				} else if (mYearInputPointer == 1) {
+					int currentYear = maxYear / 10;
+					int currentInput = mYearInput[0] * 10 + mYearInput[1] * 100;
+					int max = 0;
+					while (max < 9 && max + currentInput < currentYear) {
+						++max;
+					}
+					setYearMaxKeyRange(max);
+				} else if (mYearInputPointer == 2) {
+					int currentInput = mYearInput[0] * 10 + mYearInput[1] * 100 + mYearInput[2] * 1000;
+					int max = 0;
+					while (max < 9 && max + currentInput < maxYear) {
+						++max;
+					}
+
+					setYearMaxKeyRange(max);
+				} else if (mYearInputPointer == 3) {
+					setYearKeyRange(-1);
+				}
+
 			}
-		} else if (mYearInputPointer == 2) {
-			if (mRequireFutureDate) {
-				setYearMinKeyRange(Math.max(0, (mCurrentYear % 100) - (mYearInput[0] * 10)));
-			} else {
-				setYearMinKeyRange(-1);
+			break;
+
+			case TIME_ERA_FUTURE_ONLY: {
+				int maxYear = mCurrentYear;
+				if (mMonthInput < mCurrentMonth) {
+					++maxYear;
+				}
+
+				if (mYearInputPointer == 1) {
+					setYearMinKeyRange((maxYear % 100) / 10);
+				} else if (mYearInputPointer == 2) {
+					setYearMinKeyRange(Math.max(0, (maxYear % 100) - (mYearInput[0] * 10)));
+				} else if (mYearInputPointer == 3) {
+					setYearKeyRange(-1);
+				}
 			}
-		} else if (mYearInputPointer == 3) {
-			setYearKeyRange(-1);
+			break;
+
+			default: {
+				if (mYearInputPointer == 1) {
+					setYearMinKeyRange(-1);
+				} else if (mYearInputPointer == 2) {
+					setYearMinKeyRange(-1);
+				} else if (mYearInputPointer == 3) {
+					setYearKeyRange(-1);
+				}
+			}
+			break;
 		}
 	}
 
@@ -522,14 +600,38 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 	}
 
 	/**
+	 * Enables a range of numeric keys up to maxKey up. The rest of the keys will be disabled
+	 *
+	 * @param maxKey the maximum key that can be pressed
+	 */
+	private void setYearMaxKeyRange(int maxKey) {
+		for (int i = 0; i < mYearNumbers.length; i++) {
+			if (mYearNumbers[i] != null) {
+				mYearNumbers[i].setEnabled(i <= maxKey);
+			}
+		}
+	}
+
+	/**
 	 * Enable/disable the "Set" button
 	 */
 	private void enableSetButton() {
 		if (mSetButton == null) {
 			return;
 		}
-		int minimumYear = mRequireFutureDate ? mCurrentYear : -1;
-		mSetButton.setEnabled(getYear() >= minimumYear && getMonthOfYear() > 0);
+		switch (mRequiredTimeEra) {
+			case TIME_ERA_PAST_ONLY:
+				mSetButton.setEnabled(getYear() >= -1 && getYear() <= mCurrentYear && getMonthOfYear() > 0 && mYearInputPointer >= 3);
+				break;
+
+			case TIME_ERA_PAST_AND_FUTURE:
+				mSetButton.setEnabled(getYear() >= -1 && getMonthOfYear() > 0);
+				break;
+
+			case TIME_ERA_FUTURE_ONLY:
+				mSetButton.setEnabled(getYear() >= mCurrentYear && getMonthOfYear() > 0);
+				break;
+		}
 	}
 
 	/**
@@ -567,8 +669,14 @@ public class ExpirationPicker extends LinearLayout implements Button.OnClickList
 	 * @param monthOfYear the new zero-indexed month to set
 	 */
 	public void setExpiration(int year, int monthOfYear) {
-		if (mRequireFutureDate && year != 0 && year < mCurrentYear) {
+		if (mRequiredTimeEra == TIME_ERA_FUTURE_ONLY && year != 0 && year < mCurrentYear) {
 			throw new IllegalArgumentException("Past years are not allowed. Specify " + mCurrentYear + " or above.");
+		} else if (mRequiredTimeEra == TIME_ERA_FUTURE_ONLY && year != 0 && monthOfYear != 0 && year == mCurrentYear && monthOfYear < mCurrentMonth) {
+			throw new IllegalArgumentException("Past months are not allowed. Specify " + mCurrentMonth + " or above.");
+		} else if (mRequiredTimeEra == TIME_ERA_PAST_ONLY && year != 0 && year > mCurrentYear) {
+			throw new IllegalArgumentException("Future years are not allowed. Specify " + mCurrentYear + " or earlier.");
+		} else if (mRequiredTimeEra == TIME_ERA_PAST_ONLY && year != 0 && monthOfYear != 0 && year == mCurrentYear && monthOfYear > mCurrentMonth) {
+			throw new IllegalArgumentException("Future months are not allowed. Specify " + mCurrentMonth + " or earlier.");
 		}
 
 		mMonthInput = monthOfYear;

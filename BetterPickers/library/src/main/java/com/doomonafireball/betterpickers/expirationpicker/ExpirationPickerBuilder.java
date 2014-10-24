@@ -20,7 +20,7 @@ public class ExpirationPickerBuilder {
 	private Integer monthOfYear;
 	private Integer year;
 	private int mReference = -1;
-	private boolean mRequireFutureDate = true;
+	private int mRequiredTimeEra = ExpirationPicker.TIME_ERA_FUTURE_ONLY;
 	private Vector<ExpirationPickerDialogHandler> mExpirationPickerDialogHandlers = new Vector<ExpirationPickerDialogHandler>();
 
 	/**
@@ -94,13 +94,13 @@ public class ExpirationPickerBuilder {
 	}
 
 	/**
-	 * By default the expiration picker requires the user to pick a date in the future.
+	 * By default the expiration picker requires the user to pick a date in the future past or both.
 	 *
-	 * @param requireFutureDate true to require a future date
+	 * @param requiredTimeEra ExpirationPicker.TIME_ERA_*
 	 * @return the current Builder object
 	 */
-	public ExpirationPickerBuilder setRequireFutureDate(boolean requireFutureDate) {
-		this.mRequireFutureDate = requireFutureDate;
+	public ExpirationPickerBuilder setRequiredTimeEra(int requiredTimeEra) {
+		this.mRequiredTimeEra = requiredTimeEra;
 		return this;
 	}
 
@@ -144,7 +144,7 @@ public class ExpirationPickerBuilder {
 		ft.addToBackStack(null);
 
 		final ExpirationPickerDialogFragment fragment = ExpirationPickerDialogFragment
-				.newInstance(mReference, styleResId, monthOfYear, year, mRequireFutureDate);
+				.newInstance(mReference, styleResId, monthOfYear, year, mRequiredTimeEra);
 		if (targetFragment != null) {
 			fragment.setTargetFragment(targetFragment, 0);
 		}

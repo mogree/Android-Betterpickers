@@ -24,14 +24,14 @@ public class ExpirationPickerDialogFragment extends DialogFragment {
 	private static final String THEME_RES_ID_KEY = "ExpirationPickerDialogFragment_ThemeResIdKey";
 	private static final String MONTH_KEY = "ExpirationPickerDialogFragment_MonthKey";
 	private static final String YEAR_KEY = "ExpirationPickerDialogFragment_YearKey";
-	private static final String REQUIRE_FUTURE_DATE = "ExpirationPickerDialogFragment_RequireFutureKey";
+	private static final String REQUIRED_TIME_ERA = "ExpirationPickerDialogFragment_RequireFutureKey";
 
 	private Button mSet, mCancel;
 	private ExpirationPicker mPicker;
 
 	private int mMonthOfYear = -1;
 	private int mYear = 0;
-	private boolean mRequireFutureDate = true;
+	private int mRequiredTimeEra = ExpirationPicker.TIME_ERA_FUTURE_ONLY;
 
 	private int mReference = -1;
 	private int mTheme = -1;
@@ -45,15 +45,15 @@ public class ExpirationPickerDialogFragment extends DialogFragment {
 	/**
 	 * Create an instance of the Picker (used internally)
 	 *
-	 * @param reference         an (optional) user-defined reference, helpful when tracking multiple Pickers
-	 * @param themeResId        the style resource ID for theming
-	 * @param monthOfYear       (optional) zero-indexed month of year to pre-set
-	 * @param year              (optional) year to pre-set
-	 * @param requireFutureDate requirement to enter a future date
+	 * @param reference       an (optional) user-defined reference, helpful when tracking multiple Pickers
+	 * @param themeResId      the style resource ID for theming
+	 * @param monthOfYear     (optional) zero-indexed month of year to pre-set
+	 * @param year            (optional) year to pre-set
+	 * @param requiredTimeEra requirement to enter a future or past date
 	 * @return a Picker!
 	 */
 	public static ExpirationPickerDialogFragment newInstance(int reference, int themeResId, Integer monthOfYear,
-															 Integer year, boolean requireFutureDate) {
+															 Integer year, int requiredTimeEra) {
 		final ExpirationPickerDialogFragment frag = new ExpirationPickerDialogFragment();
 		Bundle args = new Bundle();
 		args.putInt(REFERENCE_KEY, reference);
@@ -64,7 +64,7 @@ public class ExpirationPickerDialogFragment extends DialogFragment {
 		if (year != null) {
 			args.putInt(YEAR_KEY, year);
 		}
-		args.putBoolean(REQUIRE_FUTURE_DATE, requireFutureDate);
+		args.putInt(REQUIRED_TIME_ERA, requiredTimeEra);
 		frag.setArguments(args);
 		return frag;
 	}
@@ -79,20 +79,22 @@ public class ExpirationPickerDialogFragment extends DialogFragment {
 		super.onCreate(savedInstanceState);
 
 		Bundle args = getArguments();
-		if (args != null && args.containsKey(REFERENCE_KEY)) {
-			mReference = args.getInt(REFERENCE_KEY);
-		}
-		if (args != null && args.containsKey(THEME_RES_ID_KEY)) {
-			mTheme = args.getInt(THEME_RES_ID_KEY);
-		}
-		if (args != null && args.containsKey(MONTH_KEY)) {
-			mMonthOfYear = args.getInt(MONTH_KEY);
-		}
-		if (args != null && args.containsKey(YEAR_KEY)) {
-			mYear = args.getInt(YEAR_KEY);
-		}
-		if (args != null && args.containsKey(REQUIRE_FUTURE_DATE)) {
-			mRequireFutureDate = args.getBoolean(REQUIRE_FUTURE_DATE);
+		if (args != null) {
+			if (args.containsKey(REFERENCE_KEY)) {
+				mReference = args.getInt(REFERENCE_KEY);
+			}
+			if (args.containsKey(THEME_RES_ID_KEY)) {
+				mTheme = args.getInt(THEME_RES_ID_KEY);
+			}
+			if (args.containsKey(MONTH_KEY)) {
+				mMonthOfYear = args.getInt(MONTH_KEY);
+			}
+			if (args.containsKey(YEAR_KEY)) {
+				mYear = args.getInt(YEAR_KEY);
+			}
+			if (args.containsKey(REQUIRED_TIME_ERA)) {
+				mRequiredTimeEra = args.getInt(REQUIRED_TIME_ERA);
+			}
 		}
 
 		setStyle(DialogFragment.STYLE_NO_TITLE, 0);
@@ -132,7 +134,7 @@ public class ExpirationPickerDialogFragment extends DialogFragment {
 		});
 		mPicker = (ExpirationPicker) v.findViewById(R.id.expiration_picker);
 		mPicker.setSetButton(mSet);
-		mPicker.setRequireFutureDate(mRequireFutureDate);
+		mPicker.setRequiredTimeEra(mRequiredTimeEra);
 
 		if (mMonthOfYear != -1 || mYear != 0)
 			mPicker.setExpiration(mYear, mMonthOfYear);
